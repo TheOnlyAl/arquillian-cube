@@ -67,9 +67,9 @@ public class TakeKubernetesResourcesInformationTest {
         private static final String CELLS = "cells";
         private static final String ROW = "row";
         private static final String ROWS = "rows";*/
-    private static final String TEST_CLASSES = TakeKubernetesResourcesInformationTest.class.getResource("/").toString();
+    private static final String ROOT = "/";
     private static final String FILE_NAME = "kubernetes1.json";
-    private static final String RELATIVE_PATH = TEST_CLASSES + Configuration.DEFAULT_CONFIG_FILE_NAME;
+    private static final String DEFAULT_CONFIG_FILE_NAME = Configuration.DEFAULT_CONFIG_FILE_NAME;
     private static final String SERVICES_FILE_NAME = "services.json";
     private static final String REPLICATION_CONTROLLER_FILE_NAME = "replication_controller.json";
     private static final String SERVICE_PATH = "http://foo.com/services.json";
@@ -195,7 +195,7 @@ public class TakeKubernetesResourcesInformationTest {
         assertThatReport(subReports.get(0))
             .hasName(CONFIGURATION)
             .hasNumberOfEntries(1)
-            .hasEntriesContaining(new FileEntry(TEST_CLASSES + FILE_NAME));
+            .hasEntriesContaining(fileEntry(FILE_NAME));
     }
 
     @Test
@@ -222,7 +222,7 @@ public class TakeKubernetesResourcesInformationTest {
         assertThatReport(subReports.get(0))
             .hasName(CONFIGURATION)
             .hasNumberOfEntries(1)
-            .hasEntriesContaining(new FileEntry(RELATIVE_PATH));
+            .hasEntriesContaining(fileEntry(DEFAULT_CONFIG_FILE_NAME));
     }
 
     @Test
@@ -252,7 +252,7 @@ public class TakeKubernetesResourcesInformationTest {
             .hasName(CONFIGURATION)
             .hasNumberOfEntries(3)
             .hasEntriesContaining(
-                new FileEntry(RELATIVE_PATH),
+                fileEntry(DEFAULT_CONFIG_FILE_NAME),
                 new FileEntry(SERVICE_PATH),
                 new FileEntry(REPLICATION_CONTROLLER_PATH));
     }
@@ -285,9 +285,9 @@ public class TakeKubernetesResourcesInformationTest {
             .hasName(CONFIGURATION)
             .hasNumberOfEntries(3)
             .hasEntriesContaining(
-                new FileEntry(RELATIVE_PATH),
-                new FileEntry(TEST_CLASSES + SERVICES_FILE_NAME),
-                new FileEntry(TEST_CLASSES + REPLICATION_CONTROLLER_FILE_NAME));
+                fileEntry(DEFAULT_CONFIG_FILE_NAME),
+                fileEntry(SERVICES_FILE_NAME),
+                fileEntry(REPLICATION_CONTROLLER_FILE_NAME));
     }
 
     @Test
@@ -467,5 +467,13 @@ public class TakeKubernetesResourcesInformationTest {
 
     public ReporterConfiguration getReporterConfiguration() {
         return ReporterConfiguration.fromMap(new LinkedHashMap<>());
+    }
+    
+    private URL filePath(String file) {
+        return getClass().getResource(file.startsWith(ROOT) ? file : ROOT + file);
+    }
+
+    private FileEntry fileEntry(String file) {
+        return new FileEntry(filePath(file).toString());
     }
 }
