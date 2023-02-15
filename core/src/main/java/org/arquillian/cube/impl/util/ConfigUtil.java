@@ -87,6 +87,11 @@ public class ConfigUtil {
     }
 
     public static URL[] asURL(List<String> stringUrls) {
+        List<URL> urls = asURLList(stringUrls);
+        return urls.toArray(new URL[urls.size()]);
+    }
+
+    public static List<URL> asURLList(List<String> stringUrls) {
         List<URL> urls = new ArrayList<>();
         for (String stringUrl : stringUrls) {
             try {
@@ -95,6 +100,6 @@ public class ConfigUtil {
                 //Just ignore
             }
         }
-        return urls.toArray(new URL[urls.size()]);
+        return urls;
     }
 }

@@ -36,6 +36,7 @@ import org.arquillian.reporter.api.model.entry.KeyValueEntry;
 import org.arquillian.reporter.api.model.report.BasicReport;
 import org.arquillian.reporter.api.model.report.Report;
 import org.arquillian.reporter.config.ReporterConfiguration;
+import org.assertj.core.api.Assertions;
 import org.jboss.arquillian.core.api.Event;
 import org.jboss.arquillian.core.api.Instance;
 import org.junit.Before;
@@ -66,7 +67,7 @@ public class TakeKubernetesResourcesInformationTest {
         private static final String CELLS = "cells";
         private static final String ROW = "row";
         private static final String ROWS = "rows";*/
-    private static final String TEST_CLASSES = "test-classes/";
+    private static final String TEST_CLASSES = TakeKubernetesResourcesInformationTest.class.getResource("/").toString();
     private static final String FILE_NAME = "kubernetes1.json";
     private static final String RELATIVE_PATH = TEST_CLASSES + Configuration.DEFAULT_CONFIG_FILE_NAME;
     private static final String SERVICES_FILE_NAME = "services.json";
@@ -158,6 +159,11 @@ public class TakeKubernetesResourcesInformationTest {
         server.expect().get().withPath("/api/v1/namespaces/arquillian/services").andReturn(200, new ServiceListBuilder()
             .withItems(testService)
             .build()).always();
+    }
+    
+    @BeforeClass
+    public static void beforeClass() {
+        Assertions.registerFormatterForType(FileEntry.class, f -> "FileEntry: " + f.getPath());
     }
 
     @Before
