@@ -3,7 +3,9 @@ package org.arquillian.cube.kubernetes.reporter;
 import io.fabric8.kubernetes.clnt.v4_0.KubernetesClient;
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -164,19 +166,21 @@ public class TakeKubernetesResourcesInformation {
 
     private String relativizePath(URL url, Path rootDir) {
         String filePath;
-        final String pathURL = url.toString();
         final String absoluteRootDir = new File(rootDir.toString()).getAbsolutePath();
 
-        if (pathURL.contains(absoluteRootDir)) {
-            final Path rootDirPath = Paths.get(absoluteRootDir);
-            final Path configFilePath = Paths.get(url.getFile());
+        try {
+            Path configFilePath = Paths.get(url.toURI());
+            if (configFilePath.toString().contains(absoluteRootDir)) {
+                final Path rootDirPath = Paths.get(absoluteRootDir);
 
-            final Path relativize = rootDirPath.relativize(configFilePath);
-            filePath = relativize.toString();
-        } else {
-            filePath = pathURL;
+                final Path relativize = rootDirPath.relativize(configFilePath);
+                filePath = relativize.toString();
+            } else {
+                filePath = url.toString();
+            }
+        } catch (URISyntaxException | IllegalArgumentException | FileSystemNotFoundException e) {
+            filePath = url.toString();
         }
-
         return filePath;
     }
 

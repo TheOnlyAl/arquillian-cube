@@ -13,6 +13,7 @@ import io.fabric8.kubernetes.api.model.v4_0.ServiceListBuilder;
 import io.fabric8.kubernetes.clnt.v4_0.server.mock.KubernetesMockServer;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.FileSystems;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -67,9 +68,9 @@ public class TakeKubernetesResourcesInformationTest {
         private static final String CELLS = "cells";
         private static final String ROW = "row";
         private static final String ROWS = "rows";*/
-    private static final String ROOT = "/";
+    private static final String TEST_CLASSES = "test-classes" + FileSystems.getDefault().getSeparator();
     private static final String FILE_NAME = "kubernetes1.json";
-    private static final String DEFAULT_CONFIG_FILE_NAME = Configuration.DEFAULT_CONFIG_FILE_NAME;
+    private static final String RELATIVE_PATH = TEST_CLASSES + Configuration.DEFAULT_CONFIG_FILE_NAME;
     private static final String SERVICES_FILE_NAME = "services.json";
     private static final String REPLICATION_CONTROLLER_FILE_NAME = "replication_controller.json";
     private static final String SERVICE_PATH = "http://foo.com/services.json";
@@ -195,7 +196,7 @@ public class TakeKubernetesResourcesInformationTest {
         assertThatReport(subReports.get(0))
             .hasName(CONFIGURATION)
             .hasNumberOfEntries(1)
-            .hasEntriesContaining(fileEntry(FILE_NAME));
+            .hasEntriesContaining(new FileEntry(TEST_CLASSES + FILE_NAME));
     }
 
     @Test
@@ -222,7 +223,7 @@ public class TakeKubernetesResourcesInformationTest {
         assertThatReport(subReports.get(0))
             .hasName(CONFIGURATION)
             .hasNumberOfEntries(1)
-            .hasEntriesContaining(fileEntry(DEFAULT_CONFIG_FILE_NAME));
+            .hasEntriesContaining(new FileEntry(RELATIVE_PATH));
     }
 
     @Test
@@ -252,7 +253,7 @@ public class TakeKubernetesResourcesInformationTest {
             .hasName(CONFIGURATION)
             .hasNumberOfEntries(3)
             .hasEntriesContaining(
-                fileEntry(DEFAULT_CONFIG_FILE_NAME),
+                new FileEntry(RELATIVE_PATH),
                 new FileEntry(SERVICE_PATH),
                 new FileEntry(REPLICATION_CONTROLLER_PATH));
     }
@@ -285,9 +286,9 @@ public class TakeKubernetesResourcesInformationTest {
             .hasName(CONFIGURATION)
             .hasNumberOfEntries(3)
             .hasEntriesContaining(
-                fileEntry(DEFAULT_CONFIG_FILE_NAME),
-                fileEntry(SERVICES_FILE_NAME),
-                fileEntry(REPLICATION_CONTROLLER_FILE_NAME));
+                new FileEntry(RELATIVE_PATH),
+                new FileEntry(TEST_CLASSES + SERVICES_FILE_NAME),
+                new FileEntry(TEST_CLASSES + REPLICATION_CONTROLLER_FILE_NAME));
     }
 
     @Test
@@ -386,7 +387,7 @@ public class TakeKubernetesResourcesInformationTest {
     }
 
 */
-    private void assertSectionEvent(SectionEvent sectionEvent, StringKey name) {
+    private void assertSectionEvent(SectionEvent<?, ?, ?> sectionEvent, StringKey name) {
         assertThatSection(sectionEvent).hasSectionId("k8s").hasReportOfTypeThatIsAssignableFrom(BasicReport.class);
 
         assertThatReport(sectionEvent.getReport())
@@ -424,7 +425,7 @@ public class TakeKubernetesResourcesInformationTest {
     }
 
     private Map<String, String> getConfig() {
-        Map<String, String> config = new LinkedHashMap();
+        Map<String, String> config = new LinkedHashMap<>();
         config.put(Configuration.NAMESPACE_TO_USE, "arquillian");
 
         return config;
@@ -467,13 +468,5 @@ public class TakeKubernetesResourcesInformationTest {
 
     public ReporterConfiguration getReporterConfiguration() {
         return ReporterConfiguration.fromMap(new LinkedHashMap<>());
-    }
-    
-    private URL filePath(String file) {
-        return getClass().getResource(file.startsWith(ROOT) ? file : ROOT + file);
-    }
-
-    private FileEntry fileEntry(String file) {
-        return new FileEntry(filePath(file).toString());
     }
 }
