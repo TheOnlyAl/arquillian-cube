@@ -1,6 +1,5 @@
 package org.arquillian.cube.docker.impl.docker;
 
-import javax.ws.rs.ProcessingException;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -65,7 +64,6 @@ import com.github.dockerjava.api.model.Version;
 import com.github.dockerjava.api.model.Volume;
 import com.github.dockerjava.api.model.VolumesFrom;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
-import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.async.ResultCallbackTemplate;
 import com.github.dockerjava.core.command.BuildImageResultCallback;
@@ -73,7 +71,8 @@ import com.github.dockerjava.core.command.ExecStartResultCallback;
 import com.github.dockerjava.core.command.LogContainerResultCallback;
 import com.github.dockerjava.core.command.PullImageResultCallback;
 import com.github.dockerjava.core.command.WaitContainerResultCallback;
-import org.apache.http.conn.UnsupportedSchemeException;
+
+import org.apache.hc.client5.http.UnsupportedSchemeException;
 import org.arquillian.cube.TopContainer;
 import org.arquillian.cube.docker.impl.await.StatsLogsResultCallback;
 import org.arquillian.cube.docker.impl.client.CubeDockerConfiguration;
@@ -84,6 +83,7 @@ import org.arquillian.cube.docker.impl.client.config.Image;
 import org.arquillian.cube.docker.impl.client.config.Network;
 import org.arquillian.cube.docker.impl.client.config.PortBinding;
 import org.arquillian.cube.docker.impl.util.BindingUtil;
+import org.arquillian.cube.docker.impl.util.DockerClientUtil;
 import org.arquillian.cube.docker.impl.util.HomeResolverUtil;
 import org.arquillian.cube.spi.CubeOutput;
 
@@ -320,7 +320,7 @@ public class DockerClientExecutor {
     }
 
     public DockerClient buildDockerClient() {
-        return DockerClientBuilder.getInstance(dockerClientConfig).build();
+        return DockerClientUtil.createDefaultDockerClient(dockerClientConfig);
     }
 
     public List<Container> listRunningContainers() {
@@ -544,7 +544,7 @@ public class DockerClientExecutor {
                 } else {
                     throw e;
                 }
-            } catch (ProcessingException e) {
+            } catch (RuntimeException e) {
                 if (e.getCause() instanceof UnsupportedSchemeException) {
                     if (e.getCause().getMessage().contains("https")) {
                         throw new IllegalStateException("You have configured serverUri with https protocol but " +
@@ -730,7 +730,7 @@ public class DockerClientExecutor {
             try {
                 PingCmd pingCmd = this.dockerClient.pingCmd();
                 pingCmd.exec();
-            } catch (ProcessingException e) {
+            } catch (RuntimeException e) {
                 if (e.getCause() instanceof ConnectException) {
                     throw new IllegalStateException(
                         String.format(

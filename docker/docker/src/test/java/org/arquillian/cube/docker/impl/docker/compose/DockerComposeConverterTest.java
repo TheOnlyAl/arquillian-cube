@@ -1,19 +1,5 @@
 package org.arquillian.cube.docker.impl.docker.compose;
 
-import org.arquillian.cube.docker.impl.client.config.CubeContainer;
-import org.arquillian.cube.docker.impl.client.config.DockerCompositions;
-import org.arquillian.cube.docker.impl.client.config.Link;
-import org.arquillian.cube.docker.impl.client.config.Network;
-import org.arquillian.cube.docker.impl.client.config.PortBinding;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.Map;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -23,7 +9,38 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.Map;
+
+import org.arquillian.cube.docker.impl.client.config.CubeContainer;
+import org.arquillian.cube.docker.impl.client.config.DockerCompositions;
+import org.arquillian.cube.docker.impl.client.config.Link;
+import org.arquillian.cube.docker.impl.client.config.Network;
+import org.arquillian.cube.docker.impl.client.config.PortBinding;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.contrib.java.lang.system.EnvironmentVariables;
+import org.junit.contrib.java.lang.system.RestoreSystemProperties;
+import org.junit.rules.TestRule;
+
 public class DockerComposeConverterTest {
+
+    @ClassRule
+    public static EnvironmentVariables environmentVariables = new EnvironmentVariables();
+    
+    @Rule
+    public final TestRule restoreSystemProperties = new RestoreSystemProperties();
+
+    @BeforeClass
+    public static void beforeClass() {
+        environmentVariables.set("TESTIMAGENAME", "MyImageName");
+    }
 
   @Test
   public void shouldTransformSimpleDockerComposeFormat() throws URISyntaxException, IOException {
@@ -72,6 +89,7 @@ public class DockerComposeConverterTest {
 
   @Test
   public void shouldResolveSystemEnvironmentVars() throws URISyntaxException, IOException {
+    System.setProperty("SYSTEMTESTIMAGENAME", "TestImageName");
     testResolvePlaceholders("/simple-cube-system-var.yml", "TestImageName");
   }
 

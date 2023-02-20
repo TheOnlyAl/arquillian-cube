@@ -1,14 +1,15 @@
 package org.arquillian.cube.docker.impl.await;
 
-import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.core.DockerClientBuilder;
-import com.github.dockerjava.core.command.BuildImageResultCallback;
+import static org.mockito.Mockito.when;
+
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.arquillian.cube.docker.impl.client.config.Await;
 import org.arquillian.cube.docker.impl.docker.DockerClientExecutor;
+import org.arquillian.cube.docker.impl.util.DockerClientUtil;
 import org.arquillian.cube.spi.Cube;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -22,7 +23,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
-import static org.mockito.Mockito.when;
+import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.command.BuildImageResultCallback;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DockerHealthAwaitStrategyTest {
@@ -46,10 +48,7 @@ public class DockerHealthAwaitStrategyTest {
 
     @BeforeClass
     public static void createDockerClient() {
-        if (!System.getenv().containsKey(DOCKER_HOST) || System.getenv(DOCKER_HOST).equals("")){
-            environmentVariables.set(DOCKER_HOST, "unix:///var/run/docker.sock");
-        }
-        dockerClient = DockerClientBuilder.getInstance().build();
+        dockerClient = DockerClientUtil.createDefaultDockerClient();
         healthSuccessImageId = dockerBuild("DockerHealthAwait/HealthSuccess/Dockerfile");
         healthFailureImageId = dockerBuild("DockerHealthAwait/HealthFailure/Dockerfile");
     }

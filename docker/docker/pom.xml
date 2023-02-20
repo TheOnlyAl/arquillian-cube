@@ -130,7 +130,14 @@
 
     <dependency>
       <groupId>com.github.docker-java</groupId>
-      <artifactId>docker-java</artifactId>
+      <artifactId>docker-java-core</artifactId>
+    </dependency>
+    
+    <!-- Using recommended docker transport httpclient5 -->
+    <dependency>
+      <groupId>com.github.docker-java</groupId>
+      <artifactId>docker-java-transport-httpclient5</artifactId>
+      <version>${version.docker-java}</version>
     </dependency>
 
     <dependency>

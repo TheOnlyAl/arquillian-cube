@@ -18,7 +18,6 @@ import org.arquillian.cube.impl.util.SystemEnvironmentVariables;
 import org.arquillian.spacelift.Spacelift;
 import org.arquillian.spacelift.task.net.DownloadTool;
 
-import javax.ws.rs.ProcessingException;
 import java.io.File;
 import java.net.InetAddress;
 import java.net.URI;
@@ -27,7 +26,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -43,7 +41,6 @@ public class CubeDockerConfigurationResolver {
     private static final String DOCKER_TLS_VERIFY = "DOCKER_TLS_VERIFY";
     private static final String DOCKER_CERT_PATH = "DOCKER_CERT_PATH";
     private static final String DOCKER_MACHINE_NAME = "DOCKER_MACHINE_NAME";
-    private static Random random = new Random();
     private static Logger log = Logger.getLogger(CubeDockerConfigurationResolver.class.getName());
     private final Top top;
     private final DockerMachine dockerMachine;
@@ -225,7 +222,7 @@ public class CubeDockerConfigurationResolver {
                     config.put(CubeDockerConfiguration.DOCKER_URI, defaultUri);
                     log.info(String.format("Connected to docker (%s) using default settings version: %s kernel: %s",
                         info.getName(), info.getServerVersion(), info.getKernelVersion()));
-                } catch (ProcessingException e){
+                } catch (RuntimeException e){
                     log.info(String.format("Could not connect to default socket %s. Go on with ",
                         operatingSystem.getDefaultFamily().getServerUri()));
                 }
@@ -382,10 +379,6 @@ public class CubeDockerConfigurationResolver {
         } else {
             return "~" + File.separator + ".boot2docker" + File.separator + "certs" + File.separator + "boot2docker-vm";
         }
-    }
-
-    private boolean containsCertPath(Map<String, String> cubeConfiguration) {
-        return cubeConfiguration.containsKey(CubeDockerConfiguration.CERT_PATH);
     }
 
     private Map<String, String> resolveServerUriByOperativeSystem(Map<String, String> cubeConfiguration) {

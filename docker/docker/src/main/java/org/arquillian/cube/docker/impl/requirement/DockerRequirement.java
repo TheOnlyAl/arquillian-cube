@@ -5,7 +5,6 @@ import java.util.Map;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.Version;
-import com.github.dockerjava.core.DockerClientBuilder;
 import com.google.common.base.Strings;
 
 import org.arquillian.cube.docker.impl.client.CubeDockerConfiguration;
@@ -13,6 +12,7 @@ import org.arquillian.cube.docker.impl.client.CubeDockerConfigurationResolver;
 import org.arquillian.cube.docker.impl.util.Boot2Docker;
 import org.arquillian.cube.docker.impl.util.CommandLineExecutor;
 import org.arquillian.cube.docker.impl.util.DefaultDocker;
+import org.arquillian.cube.docker.impl.util.DockerClientUtil;
 import org.arquillian.cube.docker.impl.util.DockerMachine;
 import org.arquillian.cube.docker.impl.util.OperatingSystemResolver;
 import org.arquillian.cube.docker.impl.util.Top;
@@ -57,9 +57,9 @@ public class DockerRequirement implements Constraint<RequiresDocker> {
      *     The serverUrl to use.
      */
     private static Version getDockerVersion(String serverUrl) {
-        try {
-            DockerClient client = DockerClientBuilder.getInstance(serverUrl).build();
-            return client.versionCmd().exec();
+        try (DockerClient client = DockerClientUtil.createDefaultDockerClient(serverUrl)) {
+            return client.versionCmd()
+                .exec();
         } catch (Exception e) {
             return null;
         }

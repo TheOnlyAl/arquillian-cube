@@ -13,7 +13,7 @@
   <dependencies>
     <dependency>
       <groupId>com.github.docker-java</groupId>
-      <artifactId>docker-java</artifactId>
+      <artifactId>docker-java-core</artifactId>
       <version>${version.docker-java}</version>
       <scope>provided</scope>
     </dependency>

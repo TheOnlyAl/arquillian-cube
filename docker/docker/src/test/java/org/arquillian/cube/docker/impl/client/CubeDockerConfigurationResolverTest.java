@@ -1,6 +1,5 @@
 package org.arquillian.cube.docker.impl.client;
 
-import javax.ws.rs.ProcessingException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -139,7 +138,7 @@ public class CubeDockerConfigurationResolverTest {
             mockDefaultDocker(),
             operatingSystemInterface);
 
-        when(infoCmd.exec()).thenThrow(new ProcessingException("test exception"));
+        when(infoCmd.exec()).thenThrow(new RuntimeException("test exception"));
         String sockUri = "unix:///a/path-that/does/not/exist";
         when(defaultOperatingSystemFamilyInterface.getServerUri()).thenReturn(sockUri);
         when(operatingSystemInterface.getDefaultFamily()).thenReturn(defaultOperatingSystemFamilyInterface);
@@ -161,7 +160,7 @@ public class CubeDockerConfigurationResolverTest {
             new Boot2Docker(null),
             mockDefaultDocker(),
             operatingSystemInterface);
-        when(infoCmd.exec()).thenThrow(new ProcessingException("test exception"));
+        when(infoCmd.exec()).thenThrow(new RuntimeException("test exception"));
 
         String sockUri = "unix:///a/path-that/does/not/exist";
         when(defaultOperatingSystemFamilyInterface.getServerUri()).thenReturn(sockUri);
