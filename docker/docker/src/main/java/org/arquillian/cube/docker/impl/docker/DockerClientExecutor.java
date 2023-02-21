@@ -1,6 +1,5 @@
 package org.arquillian.cube.docker.impl.docker;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -11,7 +10,6 @@ import java.net.ConnectException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -28,6 +26,8 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.async.ResultCallback.Adapter;
+import com.github.dockerjava.api.async.ResultCallbackTemplate;
 import com.github.dockerjava.api.command.BuildImageCmd;
 import com.github.dockerjava.api.command.CreateContainerCmd;
 import com.github.dockerjava.api.command.CreateNetworkCmd;
@@ -41,7 +41,9 @@ import com.github.dockerjava.api.command.PullImageCmd;
 import com.github.dockerjava.api.command.StartContainerCmd;
 import com.github.dockerjava.api.command.StatsCmd;
 import com.github.dockerjava.api.command.TopContainerResponse;
+import com.github.dockerjava.api.command.WaitContainerResultCallback;
 import com.github.dockerjava.api.exception.ConflictException;
+import com.github.dockerjava.api.exception.DockerClientException;
 import com.github.dockerjava.api.exception.DockerException;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.exception.NotModifiedException;
@@ -65,12 +67,9 @@ import com.github.dockerjava.api.model.Volume;
 import com.github.dockerjava.api.model.VolumesFrom;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientConfig;
-import com.github.dockerjava.core.async.ResultCallbackTemplate;
-import com.github.dockerjava.core.command.BuildImageResultCallback;
-import com.github.dockerjava.core.command.ExecStartResultCallback;
-import com.github.dockerjava.core.command.LogContainerResultCallback;
-import com.github.dockerjava.core.command.PullImageResultCallback;
-import com.github.dockerjava.core.command.WaitContainerResultCallback;
+
+
+import com.google.common.collect.Sets;
 
 import org.apache.hc.client5.http.UnsupportedSchemeException;
 import org.arquillian.cube.TopContainer;
@@ -83,6 +82,7 @@ import org.arquillian.cube.docker.impl.client.config.Image;
 import org.arquillian.cube.docker.impl.client.config.Network;
 import org.arquillian.cube.docker.impl.client.config.PortBinding;
 import org.arquillian.cube.docker.impl.util.BindingUtil;
+import org.arquillian.cube.docker.impl.util.DockerOutputResultCallback;
 import org.arquillian.cube.docker.impl.util.DockerClientUtil;
 import org.arquillian.cube.docker.impl.util.HomeResolverUtil;
 import org.arquillian.cube.spi.CubeOutput;
@@ -749,16 +749,14 @@ public class DockerClientExecutor {
         try {
             BuildImageCmd buildImageCmd = createBuildCommand(location);
             configureBuildCommand(params, buildImageCmd);
-            if (name != null) {
-                buildImageCmd.withTag(name);
+            if (buildImageCmd != null && name != null) {
+                buildImageCmd.withTags(Sets.newHashSet(name));
             }
-            String imageId = buildImageCmd.exec(new BuildImageResultCallback()).awaitImageId();
+            String imageId = buildImageCmd != null ? buildImageCmd.start().awaitImageId() : null;
 
             if (imageId == null) {
                 throw new IllegalStateException(
-                    String.format(
-                        "Docker server has not provided an imageId for image build from %s.",
-                        location));
+                    String.format("Docker server has not provided an imageId for image build from %s.", location));
             }
 
             // TODO this should be removed in the future it is only a hack to avoid some errors with Hijack is incompatible with use of CloseNotifier.
@@ -857,7 +855,7 @@ public class DockerClientExecutor {
         }
     }
 
-    public static class LogContainerTestCallback extends LogContainerResultCallback {
+    public static class LogContainerTestCallback extends Adapter<Frame> {
         protected final StringBuilder log = new StringBuilder();
 
         List<Frame> collectedFrames = new ArrayList<>();
@@ -905,7 +903,10 @@ public class DockerClientExecutor {
                 pullImageCmd.withTag("latest");
             }
 
-            pullImageCmd.exec(new PullImageResultCallback()).awaitSuccess();
+            pullImageCmd.start().awaitCompletion();
+        } catch (InterruptedException interruptedException) {
+            Thread.currentThread().interrupt();
+            throw new DockerClientException("", interruptedException);
         } finally {
             this.readWriteLock.readLock().unlock();
         }
@@ -925,7 +926,7 @@ public class DockerClientExecutor {
         this.readWriteLock.readLock().lock();
         try {
             String id = execCreate(containerId, commands);
-            this.dockerClient.execStartCmd(id).withDetach(true).exec(new ExecStartResultCallback());
+            this.dockerClient.execStartCmd(id).withDetach(true).start();
         } finally {
             this.readWriteLock.readLock().unlock();
         }
@@ -963,16 +964,7 @@ public class DockerClientExecutor {
     }
 
     private CubeOutput execStartOutput(String id) {
-        OutputStream outputStream = new ByteArrayOutputStream();
-        OutputStream errorStream = new ByteArrayOutputStream();
-        try {
-            dockerClient.execStartCmd(id).withDetach(false)
-                .exec(new ExecStartResultCallback(outputStream, errorStream)).awaitCompletion();
-        } catch (InterruptedException e) {
-            return new CubeOutput("", "");
-        }
-
-        return new CubeOutput(outputStream.toString(), errorStream.toString());
+        return dockerClient.execStartCmd(id).withDetach(false).exec(new DockerOutputResultCallback()).awaitCubeOutput();
     }
 
     public List<org.arquillian.cube.ChangeLog> inspectChangesOnContainerFilesystem(String containerId) {
@@ -1078,32 +1070,6 @@ public class DockerClientExecutor {
         } finally {
             this.readWriteLock.readLock().unlock();
         }
-    }
-
-    private void readDockerRawStream(InputStream rawSteram, OutputStream outputStream) throws IOException {
-        byte[] header = new byte[8];
-        while (rawSteram.read(header) > 0) {
-            ByteBuffer headerBuffer = ByteBuffer.wrap(header);
-
-            // Stream type
-            byte type = headerBuffer.get();
-            // SKip 3 bytes
-            headerBuffer.get();
-            headerBuffer.get();
-            headerBuffer.get();
-            // Payload frame size
-            int size = headerBuffer.getInt();
-
-            byte[] streamOutputBuffer = new byte[size];
-            rawSteram.read(streamOutputBuffer);
-            outputStream.write(streamOutputBuffer);
-        }
-    }
-
-    private String readDockerRawStreamToString(InputStream rawStream) throws IOException {
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        readDockerRawStream(rawStream, output);
-        return new String(output.toByteArray());
     }
 
     public String createNetwork(String id, Network network) {
@@ -1213,7 +1179,7 @@ public class DockerClientExecutor {
     }
 
     private static class OutputStreamLogsResultCallback
-        extends ResultCallbackTemplate<LogContainerResultCallback, Frame> {
+        extends ResultCallbackTemplate<OutputStreamLogsResultCallback, Frame> {
 
         private OutputStream outputStream;
 

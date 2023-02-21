@@ -3,14 +3,14 @@ package org.arquillian.cube.docker.impl.await;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.InspectExecResponse;
 import com.github.dockerjava.api.exception.NotFoundException;
-import com.github.dockerjava.core.command.ExecStartResultCallback;
-import java.io.ByteArrayOutputStream;
 import java.util.logging.Logger;
 import org.arquillian.cube.docker.impl.client.config.Await;
 import org.arquillian.cube.docker.impl.docker.DockerClientExecutor;
+import org.arquillian.cube.docker.impl.util.DockerOutputResultCallback;
 import org.arquillian.cube.docker.impl.util.Ping;
 import org.arquillian.cube.docker.impl.util.PingCommand;
 import org.arquillian.cube.spi.Cube;
+import org.arquillian.cube.spi.CubeOutput;
 
 public class DockerHealthAwaitStrategy extends SleepingAwaitStrategyBase {
 
@@ -66,28 +66,25 @@ public class DockerHealthAwaitStrategy extends SleepingAwaitStrategyBase {
                     .exec()
                     .getId();
 
-                final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-                final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-                final ExecStartResultCallback execStartResultCallback = new ExecStartResultCallback(stdout, stderr);
-                client
+                CubeOutput cubeOutput = client
                     .execStartCmd(cube.getId())
                     .withTty(true)
                     .withExecId(execID)
                     .withDetach(false)
-                    .exec(execStartResultCallback).awaitCompletion();
+                    .exec(new DockerOutputResultCallback()).awaitCompletion().getCubeOutput();
 
                 final InspectExecResponse inspectExecResponse = client
                     .inspectExecCmd(execID)
                     .exec();
 
                 log.info(() -> String.format(
-                    "docker exec %s, exit status:%d, stdout:\n%s\n, stderr: \n%s\n",
+                    "docker exec %s, exit status:%d, stdout:\n%s\n, stderr: /n%s\n",
                     String.join(" ", command),
-                    inspectExecResponse.getExitCode(),
-                    stdout.toString(),
-                    stderr.toString()));
+                    inspectExecResponse.getExitCodeLong(),
+                    cubeOutput.getStandard(),
+                    cubeOutput.getError()));
 
-                return inspectExecResponse.getExitCode() == 0;
+                return inspectExecResponse.getExitCodeLong() == 0l;
             } catch (InterruptedException e) {
                 return false;
             }

@@ -1,7 +1,7 @@
 package org.arquillian.cube.docker.impl.await;
 
+import com.github.dockerjava.api.async.ResultCallbackTemplate;
 import com.github.dockerjava.api.model.Statistics;
-import com.github.dockerjava.core.async.ResultCallbackTemplate;
 import java.util.concurrent.CountDownLatch;
 
 public class StatsLogsResultCallback extends ResultCallbackTemplate<StatsLogsResultCallback, Statistics> {
